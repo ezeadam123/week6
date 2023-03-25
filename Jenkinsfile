@@ -27,7 +27,7 @@ podTemplate(containers: [
                 stage("Code coverage") {
 
                      echo "My CC branch is: ${env.CHANGE_BRANCH}"
-                     echo "Current Branch: " ${env.BRANCH_NAME}
+                     echo "Current Branch: ${env.BRANCH_NAME}"
                      if (env.BRANCH_NAME == "main") {
                          try {
                               sh '''
@@ -49,7 +49,7 @@ podTemplate(containers: [
                          ])
                     }                         
                } 
-               
+
            } 
         }
     }
