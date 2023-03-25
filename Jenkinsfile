@@ -24,8 +24,14 @@ podTemplate(containers: [
                     '''
                 }
 
+
                 stage("Code coverage") {
+
+                    when { branch "main" }
+
                     try {
+                         
+                        echo "This is the main branch"
                         sh '''
         	            pwd
                		    cd Chapter08/sample1
