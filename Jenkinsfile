@@ -29,7 +29,7 @@ podTemplate(containers: [
 
                     when { branch "main" }
 
-                    try {
+                    steps {
                          
                         echo "This is the main branch"
                         sh '''
@@ -38,17 +38,7 @@ podTemplate(containers: [
                 	    ./gradlew jacocoTestCoverageVerification
                         ./gradlew jacocoTestReport
                         '''
-                    } catch (Exception E) {
-                        echo 'Failure detected'
-                    }
-
-                    // from the HTML publisher plugin
-                    // https://www.jenkins.io/doc/pipeline/steps/htmlpublisher/
-                    publishHTML (target: [
-                        reportDir: 'Chapter08/sample1/build/reports/tests/test',
-                        reportFiles: 'index.html',
-                        reportName: "JaCoCo Report"
-                    ])                       
+                    }                      
                 }
 
                 stage("Jacoco checkstyle test"){
