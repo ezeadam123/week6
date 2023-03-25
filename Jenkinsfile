@@ -1,5 +1,3 @@
-// week5 example uses Jenkin's "scripted" syntax, as opposed to its "declarative" syntax
-// see: https://www.jenkins.io/doc/book/pipeline/syntax/#scripted-pipeline
 
 // Defines a Kubernetes pod template that can be used to create nodes.
 
