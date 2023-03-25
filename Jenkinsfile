@@ -24,8 +24,14 @@ podTemplate(containers: [
                     '''
                 }
 
+
                 stage("Code coverage") {
+
+                    when { branch "main" }
+
                     try {
+                         
+                        echo "This is the main branch"
                         sh '''
         	            pwd
                		    cd Chapter08/sample1
@@ -50,7 +56,7 @@ podTemplate(containers: [
                         sh '''
         	            pwd
                		    cd Chapter08/sample1
-                	    ./gradlew checkstyleMain 
+                	    ./gradlew checkstyle 
                         '''
                     } catch (Exception E) {
                         echo 'Failure detected'
