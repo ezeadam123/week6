@@ -1,115 +1,71 @@
-pipeline {
-     agent any
-     triggers {
-          pollSCM('* * * * *')
-     }
-     stages {
-          stage("Compile") {
-               steps {
+// week5 example uses Jenkin's "scripted" syntax, as opposed to its "declarative" syntax
+// see: https://www.jenkins.io/doc/book/pipeline/syntax/#scripted-pipeline
+
+// Defines a Kubernetes pod template that can be used to create nodes.
+
+podTemplate(containers: [
+    containerTemplate(
+        name: 'gradle', image: 'gradle:6.3-jdk14', command: 'sleep', args: '30d'
+        ),
+    ], podRetention: onFailure()) {
+
+    node(POD_LABEL) {
+        stage('Run pipeline against a gradle project') {
+            // "container" Selects a container of the agent pod so that all shell steps are executed in that container.
+            container('gradle') {
+                stage('Build a gradle project') {
+                    // from the git plugin
+                    // https://www.jenkins.io/doc/pipeline/steps/git/
+                    git 'https://github.com/ezeadam123/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
                     sh '''
-                    pwd
-                    cd sample1
-                    ./gradlew compileJava
-                    '''
-               }
-          }
-          stage("Unit test") {
-               steps {
-                    sh '''
-                    pwd
-                    cd sample1
+                    cd Chapter08/sample1
+                    chmod +x gradlew
                     ./gradlew test
                     '''
-               }
-          }
-          stage("Code coverage") {
-               steps {
-                    sh '''
-                    pwd
-                    cd sample1
-                    ./gradlew jacocoTestReport
-                    '''
-                    sh '''
-                    pwd
-                    cd sample1 
-                    ./gradlew jacocoTestCoverageVerification
-                    '''
-               }
-          }
-          stage("Static code analysis") {
-               steps {
-                    sh '''
-                    pwd
-                    cd sample1
-                    ./gradlew checkstyleMain
-                    '''
-               
-               }
-          }
-          stage("Package") {
-               steps {
-                    sh '''
-                    pwd
-                    cd sample1
-                    ./gradlew build
-                    '''
-               }
-          }
+                }
 
-          stage("Docker build") {
-               steps {
-                    sh "docker build -t leszko/calculator:${BUILD_TIMESTAMP} ."
-               }
-          }
-
-          stage("Docker login") {
-               steps {
-                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-hub-credentials',
-                               usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                         sh "docker login --username $USERNAME --password $PASSWORD"
+                stage("Code coverage") {
+                    try {
+                        sh '''
+        	            pwd
+               		    cd Chapter08/sample1
+                	    ./gradlew jacocoTestCoverageVerification
+                        ./gradlew jacocoTestReport
+                        '''
+                    } catch (Exception E) {
+                        echo 'Failure detected'
                     }
-               }
-          }
 
-          stage("Docker push") {
-               steps {
-                    sh "docker push leszko/calculator:${BUILD_TIMESTAMP}"
-               }
-          }
+                    // from the HTML publisher plugin
+                    // https://www.jenkins.io/doc/pipeline/steps/htmlpublisher/
+                    publishHTML (target: [
+                        reportDir: 'Chapter08/sample1/build/reports/tests/test',
+                        reportFiles: 'index.html',
+                        reportName: "JaCoCo Report"
+                    ])                       
+                }
 
-          stage("Update version") {
-               steps {
-                    sh "sed  -i 's/{{VERSION}}/${BUILD_TIMESTAMP}/g' calculator.yaml"
-               }
-          }
-          
-          stage("Deploy to staging") {
-               steps {
-                    sh "kubectl config use-context staging"
-                    sh "kubectl apply -f hazelcast.yaml"
-                    sh "kubectl apply -f calculator.yaml"
-               }
-          }
+                stage("Jacoco checkstyle test"){
+                try {
+                        sh '''
+        	            pwd
+               		    cd Chapter08/sample1
+                	    ./gradlew checkstyle 
+                        '''
+                    } catch (Exception E) {
+                        echo 'Failure detected'
+                    }
 
-          stage("Acceptance test") {
-               steps {
-                    sleep 60
-                    sh "chmod +x acceptance-test.sh && ./acceptance-test.sh"
-               }
-          }
+                    // from the HTML publisher plugin
+                    // https://www.jenkins.io/doc/pipeline/steps/htmlpublisher/
+                    publishHTML (target: [
+                        reportDir: 'Chapter08/sample1/build/reports/tests/test',
+                        reportFiles: 'index.html',
+                        reportName: "jacoco checkstyle"
+                    ])  
 
-          stage("Release") {
-               steps {
-                    sh "kubectl config use-context production"
-                    sh "kubectl apply -f hazelcast.yaml"
-                    sh "kubectl apply -f calculator.yaml"
-               }
-          }
-          stage("Smoke test") {
-              steps {
-                  sleep 60
-                  sh "chmod +x smoke-test.sh && ./smoke-test.sh"
-              }
-          }
-     }
+                }  
+           }
+        }
+    }
 }
