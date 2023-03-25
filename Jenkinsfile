@@ -1,67 +1,59 @@
-// week5 example uses Jenkin's "scripted" syntax, as opposed to its "declarative" syntax
-// see: https://www.jenkins.io/doc/book/pipeline/syntax/#scripted-pipeline
+pipeline {
 
-// Defines a Kubernetes pod template that can be used to create nodes.
-
-podTemplate(containers: [
-    containerTemplate(
-        name: 'gradle', image: 'gradle:6.3-jdk14', command: 'sleep', args: '30d'
-        ),
-    ], podRetention: onFailure()) {
-
-    node(POD_LABEL) {
-        stage('Run pipeline against a gradle project') {
-            // "container" Selects a container of the agent pod so that all shell steps are executed in that container.
-            container('gradle') {
-                stage('Build a gradle project') {
-                    // from the git plugin
-                    // https://www.jenkins.io/doc/pipeline/steps/git/
-                    git 'https://github.com/ezeadam123/Continuous-Delivery-with-Docker-and-Jenkins-Second-Edition.git'
-                    sh '''
-                    cd Chapter08/sample1
-                    chmod +x gradlew
-                    ./gradlew test
-                    '''
-                }
-
-
-                stage("Code coverage") {
-
-                    when { branch "main" }
-
-                    steps {
-                         
-                        echo "This is the main branch"
-                        sh '''
-        	            pwd
-               		    cd Chapter08/sample1
-                	    ./gradlew jacocoTestCoverageVerification
-                        ./gradlew jacocoTestReport
-                        '''
-                    }                      
-                }
-
-                stage("Jacoco checkstyle test"){
-                try {
-                        sh '''
-        	            pwd
-               		    cd Chapter08/sample1
-                	    ./gradlew checkstyle 
-                        '''
-                    } catch (Exception E) {
-                        echo 'Failure detected'
-                    }
-
-                    // from the HTML publisher plugin
-                    // https://www.jenkins.io/doc/pipeline/steps/htmlpublisher/
-                    publishHTML (target: [
-                        reportDir: 'Chapter08/sample1/build/reports/tests/test',
-                        reportFiles: 'index.html',
-                        reportName: "jacoco checkstyle"
-                    ])  
-
-                }  
-           }
+    agent {
+        node {
+            label 'master'
         }
     }
+
+    options {
+        buildDiscarder logRotator( 
+                    daysToKeepStr: '16', 
+                    numToKeepStr: '10'
+            )
+    }
+
+    stages {
+        
+        stage('Cleanup Workspace') {
+            steps {
+                cleanWs()
+                sh """
+                echo "Cleaned Up Workspace For Project"
+                """
+            }
+        }
+
+        stage(' Unit Testing') {
+            steps {
+                sh """
+                echo "Running Unit Tests"
+                """
+            }
+        }
+
+        stage('Code Analysis') {
+            steps {
+                sh """
+                echo "Running Code Analysis"
+                """
+            }
+        }
+
+        stage('Build Deploy Code') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                sh """
+                echo "Building Artifact"
+                """
+
+                sh """
+                echo "Deploying Code"
+                """
+            }
+        }
+
+    }   
 }
