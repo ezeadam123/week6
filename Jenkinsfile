@@ -47,13 +47,13 @@ podTemplate(containers: [
                          ])
                     }                         
                } 
-
-               stage("Jacoco checkstyle test"){   
+                
+                stage("Jacoco checkstyle test"){   
                     try {
                          sh '''
                          pwd
                          cd Chapter08/sample1
-                         ./gradlew checkstyle 
+                         ./gradlew checkstyleMain
                          '''
                          } catch (Exception E) {
                          echo 'Failure detected'
@@ -65,8 +65,9 @@ podTemplate(containers: [
                          reportDir: 'Chapter08/sample1/build/reports/tests/test',
                          reportFiles: 'index.html',
                          reportName: "jacoco checkstyle"
+                      
                          ])  
-                  
+                   
                }
            } 
         }
